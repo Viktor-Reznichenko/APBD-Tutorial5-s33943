@@ -41,75 +41,9 @@ namespace LegacyRenewalApp
             }
 
             decimal baseAmount = (plan.MonthlyPricePerSeat * seatCount * 12m) + plan.SetupFee;
-            Discount discount = new Discount();
             string notes = string.Empty;
-
-            decimal discountAmount = discount.calculateDiscount(useLoyaltyPoints, seatCount, notes, customerRepository, customer, baseAmount, plan);
-            
-
-            decimal subtotalAfterDiscount = baseAmount - discountAmount;
-            if (subtotalAfterDiscount < 300m)
-            {
-                subtotalAfterDiscount = 300m;
-                notes += "minimum discounted subtotal applied; ";
-            }
-            SupportFee supFee = new SupportFee();
-            decimal supportFee = supFee.calculateFee(includePremiumSupport, normalizedPlanCode, notes);
-
-            decimal paymentFee = 0m;
-            if (normalizedPaymentMethod == "CARD")
-            {
-                paymentFee = (subtotalAfterDiscount + supportFee) * 0.02m;
-                notes += "card payment fee; ";
-            }
-            else if (normalizedPaymentMethod == "BANK_TRANSFER")
-            {
-                paymentFee = (subtotalAfterDiscount + supportFee) * 0.01m;
-                notes += "bank transfer fee; ";
-            }
-            else if (normalizedPaymentMethod == "PAYPAL")
-            {
-                paymentFee = (subtotalAfterDiscount + supportFee) * 0.035m;
-                notes += "paypal fee; ";
-            }
-            else if (normalizedPaymentMethod == "INVOICE")
-            {
-                paymentFee = 0m;
-                notes += "invoice payment; ";
-            }
-            else
-            {
-                throw new ArgumentException("Unsupported payment method");
-            }
-
-            decimal taxRate = 0.20m;
-            if (customer.Country == "Poland")
-            {
-                taxRate = 0.23m;
-            }
-            else if (customer.Country == "Germany")
-            {
-                taxRate = 0.19m;
-            }
-            else if (customer.Country == "Czech Republic")
-            {
-                taxRate = 0.21m;
-            }
-            else if (customer.Country == "Norway")
-            {
-                taxRate = 0.25m;
-            }
-
-            decimal taxBase = subtotalAfterDiscount + supportFee + paymentFee;
-            decimal taxAmount = taxBase * taxRate;
-            decimal finalAmount = taxBase + taxAmount;
-
-            if (finalAmount < 500m)
-            {
-                finalAmount = 500m;
-                notes += "minimum invoice amount applied; ";
-            }
-
+            Price price = new Price(normalizedPaymentMethod, notes, useLoyaltyPoints, seatCount, customer, baseAmount,
+                plan, includePremiumSupport, normalizedPlanCode);
             var invoice = new RenewalInvoice
             {
                 InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{customerId}-{normalizedPlanCode}",
@@ -118,11 +52,11 @@ namespace LegacyRenewalApp
                 PaymentMethod = normalizedPaymentMethod,
                 SeatCount = seatCount,
                 BaseAmount = Math.Round(baseAmount, 2, MidpointRounding.AwayFromZero),
-                DiscountAmount = Math.Round(discountAmount, 2, MidpointRounding.AwayFromZero),
-                SupportFee = Math.Round(supportFee, 2, MidpointRounding.AwayFromZero),
-                PaymentFee = Math.Round(paymentFee, 2, MidpointRounding.AwayFromZero),
-                TaxAmount = Math.Round(taxAmount, 2, MidpointRounding.AwayFromZero),
-                FinalAmount = Math.Round(finalAmount, 2, MidpointRounding.AwayFromZero),
+                DiscountAmount = Math.Round(price.discountAmount, 2, MidpointRounding.AwayFromZero),
+                SupportFee = Math.Round(price.supportFee, 2, MidpointRounding.AwayFromZero),
+                PaymentFee = Math.Round(price.paymentFee, 2, MidpointRounding.AwayFromZero),
+                TaxAmount = Math.Round(price.taxAmount, 2, MidpointRounding.AwayFromZero),
+                FinalAmount = Math.Round(price.finalAmount, 2, MidpointRounding.AwayFromZero),
                 Notes = notes.Trim(),
                 GeneratedAt = DateTime.UtcNow
             };
