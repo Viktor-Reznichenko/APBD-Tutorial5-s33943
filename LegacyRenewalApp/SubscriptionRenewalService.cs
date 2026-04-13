@@ -6,25 +6,7 @@ namespace LegacyRenewalApp
     {
         public RenewalInvoice CreateRenewalInvoice(int customerId, string planCode, int seatCount, string paymentMethod, bool includePremiumSupport, bool useLoyaltyPoints)
         {
-            if (customerId <= 0)
-            {
-                throw new ArgumentException("Customer id must be positive");
-            }
-
-            if (string.IsNullOrWhiteSpace(planCode))
-            {
-                throw new ArgumentException("Plan code is required");
-            }
-
-            if (seatCount <= 0)
-            {
-                throw new ArgumentException("Seat count must be positive");
-            }
-
-            if (string.IsNullOrWhiteSpace(paymentMethod))
-            {
-                throw new ArgumentException("Payment method is required");
-            }
+            checkInput(customerId, planCode, seatCount, paymentMethod);
 
             string normalizedPlanCode = planCode.Trim().ToUpperInvariant();
             string normalizedPaymentMethod = paymentMethod.Trim().ToUpperInvariant();
@@ -63,6 +45,12 @@ namespace LegacyRenewalApp
 
             LegacyBillingGateway.SaveInvoice(invoice);
 
+            notifyCustomer(customer, normalizedPlanCode, invoice);
+
+            return invoice;
+        }
+        private void notifyCustomer(Customer customer, string normalizedPlanCode, RenewalInvoice invoice)
+        {
             if (!string.IsNullOrWhiteSpace(customer.Email))
             {
                 string subject = "Subscription renewal invoice";
@@ -72,8 +60,28 @@ namespace LegacyRenewalApp
 
                 LegacyBillingGateway.SendEmail(customer.Email, subject, body);
             }
+        }
+        private static void checkInput(int customerId, string planCode, int seatCount, string paymentMethod)
+        {
+            if (customerId <= 0)
+            {
+                throw new ArgumentException("Customer id must be positive");
+            }
 
-            return invoice;
+            if (string.IsNullOrWhiteSpace(planCode))
+            {
+                throw new ArgumentException("Plan code is required");
+            }
+
+            if (seatCount <= 0)
+            {
+                throw new ArgumentException("Seat count must be positive");
+            }
+
+            if (string.IsNullOrWhiteSpace(paymentMethod))
+            {
+                throw new ArgumentException("Payment method is required");
+            }
         }
     }
 }
