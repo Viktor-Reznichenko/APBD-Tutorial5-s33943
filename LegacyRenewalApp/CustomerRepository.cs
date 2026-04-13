@@ -17,14 +17,11 @@ namespace LegacyRenewalApp
 
         public Customer GetById(int customerId)
         {
-            int randomWaitTime = new Random().Next(500);
-            Thread.Sleep(randomWaitTime);
-
             if (Database.ContainsKey(customerId))
             {
+                Thread.Sleep(new Random().Next(500));
                 return Database[customerId];
             }
-
             throw new ArgumentException($"Customer with id {customerId} does not exist");
         }
     }
