@@ -15,15 +15,11 @@ namespace LegacyRenewalApp
 
         public SubscriptionPlan GetByCode(string code)
         {
-            int randomWaitTime = new Random().Next(500);
-            Thread.Sleep(randomWaitTime);
-
-            string normalizedCode = code.ToUpperInvariant();
-            if (Database.ContainsKey(normalizedCode))
+            if (Database.ContainsKey(code.ToUpperInvariant()))
             {
-                return Database[normalizedCode];
+                Thread.Sleep(new Random().Next(500));
+                return Database[code.ToUpperInvariant()];
             }
-
             throw new ArgumentException($"Plan with code {code} does not exist");
         }
     }
